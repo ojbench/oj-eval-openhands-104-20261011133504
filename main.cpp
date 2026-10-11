@@ -6,11 +6,12 @@
 
 using namespace std;
 
-// Structure to represent a position in the grid
-struct Position {
-    int row, col, dist;
+// Structure to represent a state in the grid
+// Includes position and whether umbrella has been collected
+struct State {
+    int row, col, dist, hasUmbrella;
     
-    Position(int r, int c, int d) : row(r), col(c), dist(d) {}
+    State(int r, int c, int d, int u) : row(r), col(c), dist(d), hasUmbrella(u) {}
 };
 
 // Directions for moving up, down, left, right
@@ -24,9 +25,8 @@ int main() {
     vector<vector<int>> grid(m, vector<int>(n));
     int startRow = -1, startCol = -1;
     int homeRow = -1, homeCol = -1;
-    vector<pair<int, int>> umbrellaShops;
     
-    // Read the grid and find start, home, and umbrella shops
+    // Read the grid and find start and home positions
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
             cin >> grid[i][j];
@@ -36,78 +36,55 @@ int main() {
             } else if (grid[i][j] == 3) {
                 homeRow = i;
                 homeCol = j;
-            } else if (grid[i][j] == 4) {
-                umbrellaShops.push_back({i, j});
             }
         }
     }
     
-    // If no umbrella shop or no home, return -1 (though problem guarantees they exist)
-    if (umbrellaShops.empty() || homeRow == -1 || homeCol == -1) {
-        cout << -1 << endl;
-        return 0;
-    }
+    // Use BFS with state (row, col, hasUmbrella)
+    // visited[row][col][hasUmbrella] = whether this state has been visited
+    vector<vector<vector<bool>>> visited(m, vector<vector<bool>>(n, vector<bool>(2, false)));
+    queue<State> q;
     
-    // BFS function to find shortest distance from start to target
-    auto bfs = [&](int startR, int startC, int targetR, int targetC) -> int {
-        if (startR == targetR && startC == targetC) return 0;
+    // Start from the initial position without umbrella
+    q.push(State(startRow, startCol, 0, 0));
+    visited[startRow][startCol][0] = true;
+    
+    int minDistance = -1;
+    
+    while (!q.empty()) {
+        State curr = q.front();
+        q.pop();
         
-        vector<vector<bool>> visited(m, vector<bool>(n, false));
-        queue<Position> q;
-        q.push(Position(startR, startC, 0));
-        visited[startR][startC] = true;
+        // If we reached home with umbrella, we found a valid path
+        if (curr.row == homeRow && curr.col == homeCol && curr.hasUmbrella == 1) {
+            minDistance = curr.dist;
+            break;
+        }
         
-        while (!q.empty()) {
-            Position curr = q.front();
-            q.pop();
+        // Check all four directions
+        for (int i = 0; i < 4; i++) {
+            int newRow = curr.row + dx[i];
+            int newCol = curr.col + dy[i];
             
-            // Check all four directions
-            for (int i = 0; i < 4; i++) {
-                int newRow = curr.row + dx[i];
-                int newCol = curr.col + dy[i];
+            // Check if the new position is valid
+            if (newRow >= 0 && newRow < m && newCol >= 0 && newCol < n && grid[newRow][newCol] != 1) {
+                int newHasUmbrella = curr.hasUmbrella;
                 
-                // Check if the new position is valid
-                if (newRow >= 0 && newRow < m && newCol >= 0 && newCol < n && 
-                    !visited[newRow][newCol] && grid[newRow][newCol] != 1) {
-                    
-                    if (newRow == targetR && newCol == targetC) {
-                        return curr.dist + 1;
-                    }
-                    
-                    visited[newRow][newCol] = true;
-                    q.push(Position(newRow, newCol, curr.dist + 1));
+                // If we are at an umbrella shop, we can collect the umbrella
+                if (grid[newRow][newCol] == 4) {
+                    newHasUmbrella = 1;
+                }
+                
+                // If this state hasn't been visited, add it to the queue
+                if (!visited[newRow][newCol][newHasUmbrella]) {
+                    visited[newRow][newCol][newHasUmbrella] = true;
+                    q.push(State(newRow, newCol, curr.dist + 1, newHasUmbrella));
                 }
             }
         }
-        
-        return -1; // No path found
-    };
-    
-    // Find shortest path from start to home via any umbrella shop
-    int minDistance = INT_MAX;
-    
-    // Try each umbrella shop as an intermediate point
-    for (auto& shop : umbrellaShops) {
-        int shopRow = shop.first;
-        int shopCol = shop.second;
-        
-        // Distance from start to umbrella shop
-        int distToShop = bfs(startRow, startCol, shopRow, shopCol);
-        if (distToShop == -1) continue; // No path to this shop
-        
-        // Distance from umbrella shop to home
-        int distToHome = bfs(shopRow, shopCol, homeRow, homeCol);
-        if (distToHome == -1) continue; // No path from this shop to home
-        
-        // Update minimum distance
-        minDistance = min(minDistance, distToShop + distToHome);
     }
     
-    if (minDistance == INT_MAX) {
-        cout << -1 << endl;
-    } else {
-        cout << minDistance << endl;
-    }
+    cout << minDistance << endl;
     
     return 0;
 }
