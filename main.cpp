@@ -93,7 +93,12 @@ int main() {
         }
     }
     
-    cout << minDistance << endl;
+    // If no path found, output -1
+    if (minDistance == -1) {
+        cout << -1 << endl;
+    } else {
+        cout << minDistance << endl;
+    }
     
     return 0;
 }
