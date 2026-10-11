@@ -25,8 +25,9 @@ int main() {
     vector<vector<int>> grid(m, vector<int>(n));
     int startRow = -1, startCol = -1;
     int homeRow = -1, homeCol = -1;
+    bool foundUmbrellaShop = false;
     
-    // Read the grid and find start and home positions
+    // Read the grid and find start, home, and check for umbrella shops
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
             cin >> grid[i][j];
@@ -36,8 +37,16 @@ int main() {
             } else if (grid[i][j] == 3) {
                 homeRow = i;
                 homeCol = j;
+            } else if (grid[i][j] == 4) {
+                foundUmbrellaShop = true;
             }
         }
+    }
+    
+    // If no umbrella shop exists, it's impossible to complete the task
+    if (!foundUmbrellaShop) {
+        cout << -1 << endl;
+        return 0;
     }
     
     // Use BFS with state (row, col, hasUmbrella)
